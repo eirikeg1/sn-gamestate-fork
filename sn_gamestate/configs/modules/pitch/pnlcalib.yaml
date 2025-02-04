@@ -1,6 +1,6 @@
 _target_: sn_gamestate.calibration.pnlcalib.PnLCalib_Keypoints
-checkpoint_kp: ${model_dir}/calibration/pnl_SV_kp
-checkpoint_l: ${model_dir}/calibration/pnl_SV_lines
+checkpoint_kp: ${model_dir}/calibration/pnl_mv_kp/data.pkl
+checkpoint_l: ${model_dir}/calibration/pnl_mv_lines/data.pkl
 image_width: 1920
 image_height: 1080
 batch_size: 1

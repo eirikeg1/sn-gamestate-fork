@@ -84,9 +84,13 @@ class PnLCalib_Keypoints(ImageLevelModule):
         self.cfg_l = cfg_l
 
         if not os.path.isfile(checkpoint_kp):
+            print("Using default PnL SV keypoint model")
+            checkpoint_kp = "pretrained_models/calibration/pnl_SV_kp"
             download_file("https://zenodo.org/records/14046275/files/pnl_SV_kp?download=1", checkpoint_kp)
 
         if not os.path.isfile(checkpoint_l):
+            print("Using default PnL SV line model")
+            checkpoint_l = "pretrained_models/calibration/pnl_SV_lines"
             download_file("https://zenodo.org/records/14046275/files/pnl_SV_lines?download=1", checkpoint_l)
 
 

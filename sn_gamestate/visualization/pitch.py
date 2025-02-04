@@ -87,13 +87,15 @@ def draw_radar_view(patch, detections, scale, delta=32, group="ground truth"):
     )
     for name, detection in detections.iterrows():
         if "role" in detection and detection.role == "ball":
-            continue
+            color = (160, 0, 255)
         if "role" in detection and "team" in detection:
             color = (0, 0, 255) if detection.team == "left" else (255, 0, 0)
         else:
             color = (0, 0, 0)
         bbox_name = "bbox_pitch"
         if not isinstance(detection[bbox_name], dict):
+            if "role" in detection and detection.role == "ball":
+                print(f" * Continuing for {detection.role}")
             continue
         x_middle = np.clip(detection[bbox_name]["x_bottom_middle"], -10000, 10000)
         y_middle = np.clip(detection[bbox_name]["y_bottom_middle"], -10000, 10000)
@@ -114,6 +116,7 @@ def draw_radar_view(patch, detections, scale, delta=32, group="ground truth"):
             elif detection.role == "other":
                 cat = "OT"
                 color = (0, 255, 0)
+                
         if cat is not None:
             draw_text(
                 patch,
