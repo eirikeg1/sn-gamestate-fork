@@ -1,4 +1,5 @@
 import logging
+import math
 
 import cv2
 import numpy as np
@@ -20,9 +21,10 @@ def draw_pitch(patch, detections_pred, detections_gt,
                ):
 
     # Draw the lines on the image pitch
-    if "lines" in image_pred:
+    if "lines" in image_pred and type(image_pred["lines"]) == dict:
         image_height, image_width, _ = patch.shape
-        for name, line in image_pred["lines"].items():
+        lines = image_pred["lines"]
+        for name, line in lines.items():
             if name == "Circle central" and len(line) > 4:
                 points = np.array([(int(p["x"] * image_width), int(p["y"]*image_height)) for p in line])
                 try:
