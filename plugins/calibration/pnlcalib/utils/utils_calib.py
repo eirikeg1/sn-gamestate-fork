@@ -637,39 +637,43 @@ class FramebyFrameCalib:
             return np.array(err).ravel()
 
     def get_homography_from_ground_plane(self, use_ransac=5., inverse=False, refine_lines=False):
-        self.get_per_plane_correspondences(mode='ground_plane', use_ransac=use_ransac)
-        obj_pts, img_pts = self.get_correspondences('ground_plane')
+        try:
+            self.get_per_plane_correspondences(mode='ground_plane', use_ransac=use_ransac)
+            obj_pts, img_pts = self.get_correspondences('ground_plane')
 
-        if len(obj_pts) >= 4:
-            if use_ransac > 0:
-                H, mask = cv2.findHomography(obj_pts, img_pts, cv2.RANSAC, use_ransac)
-            else:
-                H, mask = cv2.findHomography(obj_pts, img_pts)
-
-            if H is not None:
-                self.homography = H
-                self.from_homography()
-                rep_err = self.reproj_err_ground(obj_pts, img_pts)
-                if self.position is not None:
-                    if refine_lines:
-                        self.lines_consensus_ground()
-                        vector = H.flatten()[:-1]
-                        res = least_squares(self.line_optimizer_ground, vector, verbose=0, ftol=1e-4, x_scale="jac",
-                                            method='lm', args=(img_pts, obj_pts))
-
-                        vector_opt = res['x']
-                        if not any(np.isnan(vector_opt)):
-                            H = np.append(vector_opt, 1).reshape(3, 3)
-                            self.homography = H
-                            rep_err = self.reproj_err_ground(obj_pts, img_pts)
-                if inverse:
-                    H_inv = np.linalg.inv(H)
-                    return H_inv / H_inv[-1, -1], rep_err
+            if len(obj_pts) >= 4:
+                if use_ransac > 0:
+                    H, mask = cv2.findHomography(obj_pts, img_pts, cv2.RANSAC, use_ransac)
                 else:
-                    return H, rep_err
+                    H, mask = cv2.findHomography(obj_pts, img_pts)
+
+                if H is not None:
+                    self.homography = H
+                    self.from_homography()
+                    rep_err = self.reproj_err_ground(obj_pts, img_pts)
+                    if self.position is not None:
+                        if refine_lines:
+                            self.lines_consensus_ground()
+                            vector = H.flatten()[:-1]
+                            res = least_squares(self.line_optimizer_ground, vector, verbose=0, ftol=1e-4, x_scale="jac",
+                                                method='lm', args=(img_pts, obj_pts))
+
+                            vector_opt = res['x']
+                            if not any(np.isnan(vector_opt)):
+                                H = np.append(vector_opt, 1).reshape(3, 3)
+                                self.homography = H
+                                rep_err = self.reproj_err_ground(obj_pts, img_pts)
+                    if inverse:
+                        H_inv = np.linalg.inv(H)
+                        return H_inv / H_inv[-1, -1], rep_err
+                    else:
+                        return H, rep_err
+                else:
+                    return None, None
             else:
                 return None, None
-        else:
+        except:
+            print(f"ERROR: HOMOGRAPHY FROM GROUND PLANE FAILED")
             return None, None
 
     def heuristic_voting(self, refine=False, refine_lines=False):
