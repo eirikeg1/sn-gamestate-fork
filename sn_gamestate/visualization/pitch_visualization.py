@@ -570,13 +570,22 @@ def create_draw_args(image_id, instance, image_metadatas, detections, tracker_st
     image_metadata = image_metadatas.loc[image_id]
     image_gt = image_gts.loc[image_id]
     image_pred = image_preds.loc[image_id]
-    detections_pred = detections[
-        detections.image_id == image_metadata.name
-        ]
+
+    # Use bracket notation and check for 'image_id' column in detections.
+    if "image_id" in detections.columns:
+        detections_pred = detections[detections["image_id"] == image_metadata.name]
+    else:
+        # Skip processing by returning an empty DataFrame for detections_pred.
+        detections_pred = pd.DataFrame()
+
+    # Do the same check for ground truths if available.
     if tracker_state.detections_gt is not None:
-        ground_truths = tracker_state.detections_gt[
-            tracker_state.detections_gt.image_id == image_metadata.name
+        if "image_id" in tracker_state.detections_gt.columns:
+            ground_truths = tracker_state.detections_gt[
+                tracker_state.detections_gt["image_id"] == image_metadata.name
             ]
+        else:
+            ground_truths = pd.DataFrame()
     else:
         ground_truths = None
 
