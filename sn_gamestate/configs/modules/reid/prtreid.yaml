@@ -51,7 +51,7 @@ cfg:
       learnable_attention_enabled: False
       dim_reduce: "after_pooling" # 'none', 'before_pooling', 'after_pooling', 'after_pooling_with_dropout'
       dim_reduce_output: 256
-      backbone: "fastreid_resnet_ibn" # 'hrnet32' 'resnet50' 'fastreid_resnet' 'fastreid_resnet_ibn' 'fastreid_resnet_nl' 'fastreid_resnet_ibn_nl'
+      backbone: "hrnet32" # 'hrnet32' 'resnet50' 'fastreid_resnet' 'fastreid_resnet_ibn' 'fastreid_resnet_nl' 'fastreid_resnet_ibn_nl'
       test_embeddings: ["globl"] #  ['globl', 'foreg', 'conct', 'parts']
       test_use_target_segmentation: "none" # 'none' 'hard' 'soft'
       shared_parts_id_classifier: False
