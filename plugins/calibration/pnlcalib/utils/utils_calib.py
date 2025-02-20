@@ -665,7 +665,7 @@ class FramebyFrameCalib:
                                 H = np.append(vector_opt, 1).reshape(3, 3)
                                 self.homography = H
                                 rep_err = self.reproj_err_ground(obj_pts, img_pts)
-                    if inverse and H_inv and np.linalg.det(H_inv) != 0:
+                    if inverse and H is not None:
                         H_inv = np.linalg.inv(H)
                         return H_inv / H_inv[-1, -1], rep_err
                     else:
