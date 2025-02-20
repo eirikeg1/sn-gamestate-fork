@@ -7,6 +7,8 @@ import numpy as np
 from itertools import chain
 from scipy.optimize import least_squares
 
+from numpy.linalg import LinAlgError
+
 from pnlcalib.utils.utils_optimize import vector_to_mtx, point_to_line_distance, get_opt_vector, line_plane_intersection, \
     plane_from_P, plane_from_H
 
@@ -663,7 +665,7 @@ class FramebyFrameCalib:
                                 H = np.append(vector_opt, 1).reshape(3, 3)
                                 self.homography = H
                                 rep_err = self.reproj_err_ground(obj_pts, img_pts)
-                    if inverse:
+                    if inverse and H_inv and np.linalg.det(H_inv) != 0:
                         H_inv = np.linalg.inv(H)
                         return H_inv / H_inv[-1, -1], rep_err
                     else:
@@ -672,8 +674,8 @@ class FramebyFrameCalib:
                     return None, None
             else:
                 return None, None
-        except:
-            print(f"ERROR: HOMOGRAPHY FROM GROUND PLANE FAILED")
+        except LinAlgError as err:
+            print(f"ERROR: HOMOGRAPHY FROM GROUND PLANE FAILED: {err}")
             return None, None
 
     def heuristic_voting(self, refine=False, refine_lines=False):
