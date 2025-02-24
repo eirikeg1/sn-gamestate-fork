@@ -231,10 +231,16 @@ class FramebyFrameCalib:
     def change_plane_coords(self, w=105, h=68):
         R = np.array([[0, 0, -1], [0, 1, 0], [1, 0, 0]])
         self.rotation = self.rotation @ R
+        try:
+            r_inv = np.linalg.inv(R)
+        except np.linalg.LinAlgError as e:
+            print(f"Invalid rotation matrix: {e}")
+            return
+        
         if self.ord_pts[0] == 1:
-            self.position = np.linalg.inv(R) @ self.position + np.array([-w / 2, 0, 0])
+            self.position = r_inv @ self.position + np.array([-w / 2, 0, 0])
         elif self.ord_pts[0] == 2:
-            self.position = np.linalg.inv(R) @ self.position + np.array([w / 2, 0, 0])
+            self.position = r_inv @ self.position + np.array([w / 2, 0, 0])
 
     def reproj_err(self, obj_pts, img_pts):
         if self.calibration is not None:
@@ -517,7 +523,12 @@ class FramebyFrameCalib:
             K = np.eye(3)
             return False, K
 
-        K = np.linalg.inv(np.transpose(Ktinv))
+        try:
+            K = np.linalg.inv(np.transpose(Ktinv))
+        except np.linalg.LinAlgError as e:
+            print(f"Invalid rotation matrix: {e}")
+            return False, None
+        
         K /= K[2, 2]
 
         self.xfocal_length = K[0, 0]
@@ -545,8 +556,15 @@ class FramebyFrameCalib:
         success, _ = self.estimate_calibration_matrix_from_plane_homography(self.homography)
         if not success:
             return False
+        
+        try:
+            # Safely invert self.calibration:
+            calib_inv = np.linalg.inv(self.calibration)
+        except np.linalg.LinAlgError:
+            print("WARNING: calibration matrix is singular.")
+            return False
 
-        hprim = np.linalg.inv(self.calibration) @ self.homography
+        hprim = calib_inv @ self.homography
         lambda1 = 1 / np.linalg.norm(hprim[:, 0])
         lambda2 = 1 / np.linalg.norm(hprim[:, 1])
         lambda3 = np.sqrt(lambda1 * lambda2)
@@ -666,12 +684,29 @@ class FramebyFrameCalib:
                                 self.homography = H
                                 rep_err = self.reproj_err_ground(obj_pts, img_pts)
                     if inverse:
+                        det_threshold = 1e-9
+                        cond_threshold = 1e10
+                        svd_threshold = 1e-8
+                        det = np.abs(np.linalg.det(H))
+                        cond = np.linalg.cond(H)
+                        svd = np.linalg.svd(H, compute_uv=False)[-1]
                         
-                        if np.abs(np.linalg.det(H)) < 1e-10:
+                        if det < det_threshold:
                             print("WARNING: Homography matrix is singular or nearly singular")
                             return None, None
+                        elif cond > cond_threshold:
+                            print("WARNING: Homography matrix is ill-conditioned")
+                            return None, None
+                        elif svd < svd_threshold:
+                            print("WARNING: Homography matrix is numerically unstable")
+                            return None, None
                         
-                        H_inv = np.linalg.inv(H)
+                        try:
+                            H_inv = np.linalg.pinv(H)
+                        except:
+                            print(f"WARNING: THE PINV() FAILED")
+                            return None, None
+                        
                         return H_inv / H_inv[-1, -1], rep_err
                     else:
                         return H, rep_err
@@ -679,7 +714,7 @@ class FramebyFrameCalib:
                     return None, None
             else:
                 return None, None
-        except LinAlgError as err:
+        except np.linalg.LinAlgError as err:
             print(f"ERROR: HOMOGRAPHY FROM GROUND PLANE FAILED: {err}")
             return None, None
 
