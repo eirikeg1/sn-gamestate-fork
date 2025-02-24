@@ -691,15 +691,15 @@ class FramebyFrameCalib:
                         cond = np.linalg.cond(H)
                         svd = np.linalg.svd(H, compute_uv=False)[-1]
                         
-                        if det < det_threshold:
-                            print("WARNING: Homography matrix is singular or nearly singular")
-                            return None, None
-                        elif cond > cond_threshold:
-                            print("WARNING: Homography matrix is ill-conditioned")
-                            return None, None
-                        elif svd < svd_threshold:
-                            print("WARNING: Homography matrix is numerically unstable")
-                            return None, None
+                        # if det < det_threshold:
+                        #     print("WARNING: Homography matrix is singular or nearly singular")
+                        #     return None, None
+                        # elif cond > cond_threshold:
+                        #     print("WARNING: Homography matrix is ill-conditioned")
+                        #     return None, None
+                        # elif svd < svd_threshold:
+                        #     print("WARNING: Homography matrix is numerically unstable")
+                        #     return None, None
                         
                         try:
                             H_inv = np.linalg.pinv(H)
