@@ -234,7 +234,7 @@ class FramebyFrameCalib:
         try:
             r_inv = np.linalg.inv(R)
         except np.linalg.LinAlgError as e:
-            print(f"Invalid rotation matrix: {e}")
+            print(f"[WARNING] Invalid rotation matrix: {e}")
             return
         
         if self.ord_pts[0] == 1:
@@ -442,15 +442,19 @@ class FramebyFrameCalib:
 
             if refine_w_lines:
                 if not np.isnan(rep_err):
-                    self.lines_consensus()
-                    vector = get_opt_vector(self.position, self.rotation)
-                    res = least_squares(self.line_optimizer, vector, verbose=0, ftol=1e-4, x_scale="jac", method='trf',
-                                        args=(img_pts, obj_pts))
+                    try:
+                        self.lines_consensus()
+                        vector = get_opt_vector(self.position, self.rotation)
+                        res = least_squares(self.line_optimizer, vector, verbose=0, ftol=1e-4, x_scale="jac", method='trf',
+                                            args=(img_pts, obj_pts))
 
-                    vector_opt = res['x']
-                    if not any(np.isnan(vector_opt)):
-                        self.vector_to_params(vector_opt)
-                        rep_err = self.reproj_err(obj_pts, img_pts)
+                        vector_opt = res['x']
+                        if not any(np.isnan(vector_opt)):
+                            self.vector_to_params(vector_opt)
+                            rep_err = self.reproj_err(obj_pts, img_pts)
+                    except ValueError as e:
+                        print(f"[WARNING] Failed to refine w lines: {e}")
+                        
 
             pan, tilt, roll = rotation_matrix_to_pan_tilt_roll(self.rotation)
 
@@ -526,7 +530,7 @@ class FramebyFrameCalib:
         try:
             K = np.linalg.inv(np.transpose(Ktinv))
         except np.linalg.LinAlgError as e:
-            print(f"Invalid rotation matrix: {e}")
+            print(f"[WARNING] Invalid rotation matrix: {e}")
             return False, None
         
         K /= K[2, 2]
@@ -561,7 +565,7 @@ class FramebyFrameCalib:
             # Safely invert self.calibration:
             calib_inv = np.linalg.inv(self.calibration)
         except np.linalg.LinAlgError:
-            print("WARNING: calibration matrix is singular.")
+            print("[WARNING] calibration matrix is singular.")
             return False
 
         hprim = calib_inv @ self.homography
@@ -673,16 +677,19 @@ class FramebyFrameCalib:
                     rep_err = self.reproj_err_ground(obj_pts, img_pts)
                     if self.position is not None:
                         if refine_lines:
-                            self.lines_consensus_ground()
-                            vector = H.flatten()[:-1]
-                            res = least_squares(self.line_optimizer_ground, vector, verbose=0, ftol=1e-4, x_scale="jac",
-                                                method='lm', args=(img_pts, obj_pts))
+                            try:
+                                self.lines_consensus_ground()
+                                vector = H.flatten()[:-1]
+                                res = least_squares(self.line_optimizer_ground, vector, verbose=0, ftol=1e-4, x_scale="jac",
+                                                    method='lm', args=(img_pts, obj_pts))
 
-                            vector_opt = res['x']
-                            if not any(np.isnan(vector_opt)):
-                                H = np.append(vector_opt, 1).reshape(3, 3)
-                                self.homography = H
-                                rep_err = self.reproj_err_ground(obj_pts, img_pts)
+                                vector_opt = res['x']
+                                if not any(np.isnan(vector_opt)):
+                                    H = np.append(vector_opt, 1).reshape(3, 3)
+                                    self.homography = H
+                                    rep_err = self.reproj_err_ground(obj_pts, img_pts)
+                            except ValueError as err:
+                                print(f"[WARNING] Could not refine lines: {err}")
                     if inverse:
                         det_threshold = 1e-9
                         cond_threshold = 1e10
@@ -691,20 +698,20 @@ class FramebyFrameCalib:
                         cond = np.linalg.cond(H)
                         svd = np.linalg.svd(H, compute_uv=False)[-1]
                         
-                        # if det < det_threshold:
-                        #     print("WARNING: Homography matrix is singular or nearly singular")
-                        #     return None, None
-                        # elif cond > cond_threshold:
-                        #     print("WARNING: Homography matrix is ill-conditioned")
-                        #     return None, None
-                        # elif svd < svd_threshold:
-                        #     print("WARNING: Homography matrix is numerically unstable")
-                        #     return None, None
+                        if det < det_threshold:
+                            print("[WARNING] Homography matrix is singular or nearly singular")
+                            return None, None
+                        elif cond > cond_threshold:
+                            print("[WARNING] Homography matrix is ill-conditioned")
+                            return None, None
+                        elif svd < svd_threshold:
+                            print("[WARNING] Homography matrix is numerically unstable")
+                            return None, None
                         
                         try:
                             H_inv = np.linalg.pinv(H)
                         except:
-                            print(f"WARNING: THE PINV() FAILED")
+                            print(f"[WARNING] THE PINV() FAILED")
                             return None, None
                         
                         return H_inv / H_inv[-1, -1], rep_err
@@ -715,7 +722,7 @@ class FramebyFrameCalib:
             else:
                 return None, None
         except np.linalg.LinAlgError as err:
-            print(f"ERROR: HOMOGRAPHY FROM GROUND PLANE FAILED: {err}")
+            print(f"[ERROR] HOMOGRAPHY FROM GROUND PLANE FAILED: {err}")
             return None, None
 
     def heuristic_voting(self, refine=False, refine_lines=False):
